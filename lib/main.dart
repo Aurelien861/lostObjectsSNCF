@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:myapp/providers/lost_objects_provider.dart';
-import 'package:myapp/view/home_page.dart';
+import 'package:myapp/views/home_page.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -24,6 +25,14 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('fr', ''), 
+      ],
       home: HomePage(),
     );
   }

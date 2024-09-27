@@ -1,8 +1,8 @@
 class LostObject {
   final String date;
-  final String startStation;
-  final String type;
-  final String nature;
+  final String? startStation;
+  final String? type;
+  final String? nature;
 
   LostObject({
     required this.date,
