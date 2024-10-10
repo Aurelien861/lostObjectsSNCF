@@ -20,35 +20,38 @@ Future<LostObjectsApiResponse> fetchLostObjects(
     String orderBy,
     String orderByDirection,
     int limit,
-    String dateFilter,
     List<String> stationFilter,
     List<String> natureFilter,
     List<String> typeFilter,
-    [String? where]) async {
+    String minDate,
+    String maxDate) async {
   String baseUrl =
       'https://data.sncf.com/api/explore/v2.1/catalog/datasets/objets-trouves-restitution/records';
   String url = '$baseUrl?order_by=$orderBy%20$orderByDirection&limit=$limit';
-
-  if (where != null ||
+  if (minDate.isNotEmpty ||
+      maxDate.isNotEmpty ||
       stationFilter.isNotEmpty ||
       natureFilter.isNotEmpty ||
-      typeFilter.isNotEmpty ||
-      (dateFilter.isNotEmpty && dateFilter != "Date invalide")) {
+      typeFilter.isNotEmpty) {
     url += "&where=";
-    if (where != null) {
-      url += Uri.encodeComponent(" date < date'$where'");
+    if (maxDate.isNotEmpty) {
+      url += Uri.encodeComponent(" date < date'$maxDate'");
     }
-    if (dateFilter.isNotEmpty && dateFilter != "Date invalide") {
-      DateTime originalDate = DateTime.parse(dateFilter);
-      DateTime startOfDay =
-          DateTime(originalDate.year, originalDate.month, originalDate.day);
-      String formattedStartDay = startOfDay.toIso8601String();
-      DateTime endOfDay = startOfDay.add(const Duration(days: 1));
-      String formattedEndDay = endOfDay.toIso8601String();
+    if (minDate.isNotEmpty) {
       url += url.substring(url.length - 6) == 'where=' ? "" : " AND";
-      url += Uri.encodeComponent(
-          " date >= date'$formattedStartDay' AND date < date'$formattedEndDay'");
+      url += Uri.encodeComponent(" date > date'$minDate'");
     }
+    // if (dateFilter.isNotEmpty && dateFilter != "Date invalide") {
+    //   DateTime originalDate = DateTime.parse(dateFilter);
+    //   DateTime startOfDay =
+    //       DateTime(originalDate.year, originalDate.month, originalDate.day);
+    //   String formattedStartDay = startOfDay.toIso8601String();
+    //   DateTime endOfDay = startOfDay.add(const Duration(days: 1));
+    //   String formattedEndDay = endOfDay.toIso8601String();
+    //   url += url.substring(url.length - 6) == 'where=' ? "" : " AND";
+    //   url += Uri.encodeComponent(
+    //       " date >= date'$formattedStartDay' AND date < date'$formattedEndDay'");
+    // }
     if (stationFilter.isNotEmpty) {
       url += url.substring(url.length - 6) == 'where=' ? "" : " AND";
       String station = stationFilter[0];
@@ -66,8 +69,7 @@ Future<LostObjectsApiResponse> fetchLostObjects(
       url += Uri.encodeComponent(" (gc_obo_nature_c = '$nature'");
       for (int i = 1; i < natureFilter.length; i++) {
         nature = natureFilter[i];
-        url +=
-            Uri.encodeComponent(" or gc_obo_nature_c = '$nature'");
+        url += Uri.encodeComponent(" or gc_obo_nature_c = '$nature'");
       }
       url += ")";
     }
@@ -77,8 +79,7 @@ Future<LostObjectsApiResponse> fetchLostObjects(
       url += Uri.encodeComponent(" (gc_obo_type_c = '$type'");
       for (int i = 1; i < typeFilter.length; i++) {
         type = typeFilter[i];
-        url +=
-            Uri.encodeComponent(" or gc_obo_type_c = '$type'");
+        url += Uri.encodeComponent(" or gc_obo_type_c = '$type'");
       }
       url += ")";
     }

@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
       title: 'Objets perdus',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6665DD)),
         useMaterial3: true,
       ),
       localizationsDelegates: const [

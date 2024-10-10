@@ -7,8 +7,12 @@ import 'package:myapp/utils/util_functions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LostObjectsProvider with ChangeNotifier {
-  int _totalCount = 0;
-  List<LostObject> _lostObjects = [];
+  int _newCount = 0;
+  int _formerCount = 0;
+  int _filteredCount = 0;
+  List<LostObject> _newLostObjects = [];
+  List<LostObject> _formerLostObjects = [];
+  List<LostObject> _filteredLostObjects = [];
   String _lastLostObjectDateLoaded = '';
   bool _isLoading = false;
   DateTime? _dateFilter;
@@ -21,9 +25,13 @@ class LostObjectsProvider with ChangeNotifier {
   String _orderBy = 'date';
   String _orderByDirection = 'desc';
 
-  List<LostObject> get lostObjects => _lostObjects;
+  List<LostObject> get newLostObjects => _newLostObjects;
+  List<LostObject> get formerLostObjects => _formerLostObjects;
+  List<LostObject> get filteredLostObjects => _filteredLostObjects;
   bool get isLoading => _isLoading;
-  int get totalCount => _totalCount;
+  int get newCount => _newCount;
+  int get formerCount => _formerCount;
+  int get filteredCount => _filteredCount;
   DateTime? get dateFilter => _dateFilter;
   List<String> get stationFilter => _stationFilter;
   List<String> get allStations => _allStations;
@@ -33,12 +41,16 @@ class LostObjectsProvider with ChangeNotifier {
   List<String> get allTypes => _allTypes;
 
   LostObjectsProvider() {
-    getFiltersOptions();
-    getLostObjects();
+    initLostObjetcts();
   }
 
   void setSelectedDate(DateTime newDate) {
     _dateFilter = newDate;
+    getLostObjects();
+  }
+
+  void resetDate() {
+    _dateFilter = null;
     getLostObjects();
   }
 
@@ -75,32 +87,67 @@ class LostObjectsProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> initLostObjetcts() async {
+    getFiltersOptions();
+    await loadLastDate();
+    await getLostObjects();
+    if (_newLostObjects.isNotEmpty) {
+      saveLastDate(_newLostObjects[0].date);
+    }
+  }
+
+  bool hasFilter() {
+    return (_dateFilter != null ||
+        _typeFilter.isNotEmpty ||
+        _typeFilter.isNotEmpty ||
+        _stationFilter.isNotEmpty);
+  }
+
   Future<void> getLostObjects() async {
     _isLoading = true;
     notifyListeners();
 
-    await loadLastDate();
     LostObjectsApiResponse apiResponse;
-    // if (_lastLostObjectDateLoaded.isNotEmpty) {
-    //   apiResponse =
-    //       await fetchLostObjects('date', 'desc', 20, "date>'$_lastLostObjectDateLoaded'");
-    //   if (apiResponse.totalCount == 0) {
-    //     apiResponse = await fetchLostObjects('date', 'desc', 20);
-    //   }
-    // } else {
-    apiResponse = await fetchLostObjects(
-        _orderBy,
-        _orderByDirection,
-        20,
-        formatDate(_dateFilter.toString(), "yyyy-MM-dd'T'HH:mm:ssZ"),
-        stationFilter,
-        natureFilter,
-        typeFilter);
-    //}
-    _totalCount = apiResponse.totalCount;
-    _lostObjects = apiResponse.lostObjects;
-    if (_lostObjects.isNotEmpty) {
-      saveLastDate(_lostObjects[0].date);
+    String minDate = '';
+    String maxDate = '';
+
+    if (hasFilter()) {
+      if (dateFilter != null) {
+        DateTime originalDate = DateTime.parse(
+            formatDate(_dateFilter.toString(), "yyyy-MM-dd'T'HH:mm:ssZ"));
+        DateTime startOfDay =
+            DateTime(originalDate.year, originalDate.month, originalDate.day);
+        minDate = startOfDay.toIso8601String();
+        DateTime endOfDay = startOfDay.add(const Duration(days: 1));
+        maxDate = endOfDay.toIso8601String();
+      }
+      _formerCount = 0;
+      _formerLostObjects = [];
+      _newCount = 0;
+      _newLostObjects = [];
+      apiResponse = await fetchLostObjects(_orderBy, _orderByDirection, 20,
+          stationFilter, natureFilter, typeFilter, minDate, maxDate);
+      _filteredCount = apiResponse.totalCount;
+      _filteredLostObjects = apiResponse.lostObjects;
+    } else {
+      _filteredCount = 0;
+      _filteredLostObjects = [];
+      if (_lastLostObjectDateLoaded.isNotEmpty) {
+        minDate = _lastLostObjectDateLoaded;
+      }
+      apiResponse = await fetchLostObjects(_orderBy, _orderByDirection, 20,
+          stationFilter, natureFilter, typeFilter, minDate, maxDate);
+      if (apiResponse.lostObjects.isEmpty) {
+        apiResponse = await fetchLostObjects(_orderBy, _orderByDirection, 20,
+            stationFilter, natureFilter, typeFilter, '', minDate);
+        _formerLostObjects = apiResponse.lostObjects;
+        _formerCount = apiResponse.totalCount;
+      } else {
+        _formerCount = 0;
+        _formerLostObjects = [];
+        _newCount = apiResponse.totalCount;
+        _newLostObjects = apiResponse.lostObjects;
+      }
     }
 
     _isLoading = false;
@@ -111,21 +158,95 @@ class LostObjectsProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    String date = _lostObjects[_lostObjects.length - 1].date;
     LostObjectsApiResponse apiResponse;
-    apiResponse = await fetchLostObjects(
-        _orderBy,
-        _orderByDirection,
-        20,
-        formatDate(_dateFilter.toString(), "yyyy-MM-dd'T'HH:mm:ssZ"),
-        stationFilter,
-        natureFilter,
-        typeFilter,
-        date);
+    String lastObjectDisplayed;
+    if (_filteredLostObjects.isNotEmpty) {
+      lastObjectDisplayed =
+          _filteredLostObjects[_filteredLostObjects.length - 1].date;
+    } else if (_formerLostObjects.isEmpty) {
+      lastObjectDisplayed = _newLostObjects[_newLostObjects.length - 1].date;
+    } else {
+      lastObjectDisplayed =
+          _formerLostObjects[_formerLostObjects.length - 1].date;
+    }
+    String minDate = '';
+    String maxDate = '';
 
-    _lostObjects.addAll(apiResponse.lostObjects);
-    if (_lostObjects.isNotEmpty) {
-      saveLastDate(_lostObjects[0].date);
+    if (hasFilter()) {
+      if (dateFilter != null) {
+        DateTime originalDate = DateTime.parse(
+            formatDate(_dateFilter.toString(), "yyyy-MM-dd'T'HH:mm:ssZ"));
+        DateTime startOfDay =
+            DateTime(originalDate.year, originalDate.month, originalDate.day);
+        minDate = startOfDay.toIso8601String();
+        DateTime endOfDay = startOfDay.add(const Duration(days: 1));
+        maxDate = endOfDay.toIso8601String();
+      }
+
+      if (maxDate.isEmpty ||
+          DateTime.parse(lastObjectDisplayed)
+              .isBefore(DateTime.parse(maxDate))) {
+        maxDate = lastObjectDisplayed;
+      }
+      _formerCount = 0;
+      _formerLostObjects = [];
+      _newCount = 0;
+      _newLostObjects = [];
+      if (_orderByDirection == 'asc') {
+        String mem = minDate;
+        minDate = maxDate;
+        maxDate = mem;
+      }
+      apiResponse = await fetchLostObjects(_orderBy, _orderByDirection, 20,
+          stationFilter, natureFilter, typeFilter, minDate, maxDate);
+      if (_filteredCount == 0) {
+        _filteredCount = apiResponse.totalCount;
+      }
+      _filteredLostObjects.addAll(apiResponse.lostObjects);
+    } else {
+      _filteredCount = 0;
+      _filteredLostObjects = [];
+
+      if (_lastLostObjectDateLoaded.isNotEmpty) {
+        if (_formerLostObjects.isNotEmpty) {
+          maxDate = _lastLostObjectDateLoaded;
+        } else {
+          minDate = _lastLostObjectDateLoaded;
+        }
+      }
+
+      if (maxDate.isEmpty ||
+          DateTime.parse(lastObjectDisplayed)
+              .isBefore(DateTime.parse(maxDate))) {
+        maxDate = lastObjectDisplayed;
+      }
+      if (_orderByDirection == 'asc') {
+        String mem = minDate;
+        minDate = maxDate;
+        maxDate = mem;
+      }
+
+      apiResponse = await fetchLostObjects(_orderBy, _orderByDirection, 20,
+          stationFilter, natureFilter, typeFilter, minDate, maxDate);
+      if (formerLostObjects.isNotEmpty) {
+        _formerLostObjects.addAll(apiResponse.lostObjects);
+      } else {
+        if (apiResponse.lostObjects.isEmpty) {
+          apiResponse = await fetchLostObjects(_orderBy, _orderByDirection, 20,
+              stationFilter, natureFilter, typeFilter, '', minDate);
+          _formerLostObjects.addAll(apiResponse.lostObjects);
+          if (_formerCount == 0) {
+            _formerCount = apiResponse.totalCount;
+          }
+        } else {
+          _formerCount = 0;
+          _formerLostObjects = [];
+          if (_newCount == 0) {
+            _newCount = apiResponse.totalCount;
+          }
+          _newLostObjects.addAll(apiResponse.lostObjects);
+        }
+      }
     }
 
     _isLoading = false;

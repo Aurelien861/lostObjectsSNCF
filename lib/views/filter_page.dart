@@ -45,12 +45,12 @@ class _FilterPageState extends State<FilterPage> {
         selectedFilters.add(filter);
       }
       if (widget.filterType == 'Gare de départ') {
-      lostObjectsProvider.setSelectedStations(selectedFilters);
-    } else if (widget.filterType == 'Nature de l\'objet') {
-      lostObjectsProvider.setSelectedNatures(selectedFilters);
-    } else if (widget.filterType == 'Type d\'objet') {
-      lostObjectsProvider.setSelectedTypes(selectedFilters);
-    }
+        lostObjectsProvider.setSelectedStations(selectedFilters);
+      } else if (widget.filterType == 'Nature de l\'objet') {
+        lostObjectsProvider.setSelectedNatures(selectedFilters);
+      } else if (widget.filterType == 'Type d\'objet') {
+        lostObjectsProvider.setSelectedTypes(selectedFilters);
+      }
     });
   }
 
@@ -58,6 +58,11 @@ class _FilterPageState extends State<FilterPage> {
   Widget build(BuildContext context) {
     final lostObjectsProvider =
         Provider.of<LostObjectsProvider>(context, listen: true);
+    final numberOfObjects = lostObjectsProvider.filteredCount != 0
+        ? lostObjectsProvider.filteredCount
+        : lostObjectsProvider.formerCount != 0
+            ? lostObjectsProvider.formerCount
+            : lostObjectsProvider.newCount;
     return Scaffold(
       backgroundColor: const Color(0xFF211E29),
       appBar: AppBar(
@@ -185,7 +190,7 @@ class _FilterPageState extends State<FilterPage> {
                     ),
                     child: !lostObjectsProvider.isLoading
                         ? Text(
-                            'Voir ${formatLargeNumber(lostObjectsProvider.totalCount)} résultats',
+                            'Voir ${formatLargeNumber(numberOfObjects)} résultats',
                             style: const TextStyle(color: Colors.white),
                           )
                         : const SizedBox(

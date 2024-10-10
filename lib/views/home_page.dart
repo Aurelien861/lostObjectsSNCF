@@ -36,13 +36,46 @@ class __HomePageState extends State<HomePage> {
     super.dispose();
   }
 
+  Widget _lostObjectsGrid(
+      BuildContext context, List<LostObject> newLostObjects) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 8.0,
+          mainAxisSpacing: 8.0,
+          childAspectRatio: 0.5,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (BuildContext context, int index) {
+            if (newLostObjects.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            double width = MediaQuery.of(context).size.width / 2 - 12;
+            double height = width / 0.6;
+            LostObject lostObject = newLostObjects[index];
+            return ObjectCard(
+                lostObject: lostObject, width: width, height: height);
+          },
+          childCount: newLostObjects.length,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final lostObjectsProvider = Provider.of<LostObjectsProvider>(context);
 
-    final lostObjects = lostObjectsProvider.lostObjects;
-    final objectCount = lostObjects.length;
-    final newObjectsCount = formatLargeNumber(lostObjectsProvider.totalCount);
+    final newLostObjects = lostObjectsProvider.newLostObjects;
+    final formerLostObjects = lostObjectsProvider.formerLostObjects;
+    final filteredLostObjects = lostObjectsProvider.filteredLostObjects;
+    final newObjectsCount = formatLargeNumber(lostObjectsProvider.newCount);
+    final formerObjectsCount =
+        formatLargeNumber(lostObjectsProvider.formerCount);
+    final filteredObjectsCount =
+        formatLargeNumber(lostObjectsProvider.filteredCount);
 
     return Scaffold(
         backgroundColor: const Color(0xFF211E29),
@@ -75,59 +108,86 @@ class __HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(height: 16),
                         const Text(
-                          "Recherchez votre objet, peut être que nous l'avons retrouvé...",
+                          "Recherchez votre bien, peut être que nous l'avons retrouvé...",
                           style: TextStyle(fontSize: 20, color: Colors.white),
                         ),
                         const SizedBox(height: 32),
                         _buildFilterSection(context, lostObjectsProvider),
                         _buildCustomFilterSection(lostObjectsProvider),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Text(
-                              "$newObjectsCount nouveaux objets",
-                              style: const TextStyle(color: Color(0xFF8EF1D9)),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Container(
-                                height: 2,
-                                color: const Color(0xFF8EF1D9),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
                       ],
                     ),
                   )
                 ],
               ),
             ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 8.0,
-                  mainAxisSpacing: 8.0,
-                  childAspectRatio: 0.5,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                    if (lostObjects.isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-                    double width = MediaQuery.of(context).size.width / 2 - 12;
-                    double height = width / 0.6;
-                    LostObject lostObject = lostObjects[index];
-                    return ObjectCard(
-                        lostObject: lostObject, width: width, height: height);
-                  },
-                  childCount: objectCount,
+            if (filteredLostObjects.isNotEmpty) ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Text(
+                        "$filteredObjectsCount objets trouvés",
+                        style: const TextStyle(color: Color(0xFF8EF1D9)),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Container(
+                          height: 2,
+                          color: const Color(0xFF8EF1D9),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+              _lostObjectsGrid(context, filteredLostObjects),
+            ],
+            if (newLostObjects.isNotEmpty) ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Text(
+                        "$newObjectsCount nouveaux objets",
+                        style: const TextStyle(color: Color(0xFF8EF1D9)),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Container(
+                          height: 2,
+                          color: const Color(0xFF8EF1D9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              _lostObjectsGrid(context, newLostObjects),
+            ],
+            if (formerLostObjects.isNotEmpty) ...[
+              SliverToBoxAdapter(
+                  child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Text(
+                      "$formerObjectsCount objets déjà consultés",
+                      style: const TextStyle(color: Color(0xFF8EF1D9)),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Container(
+                        height: 2,
+                        color: const Color(0xFF8EF1D9),
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+              _lostObjectsGrid(context, formerLostObjects),
+            ],
             SliverToBoxAdapter(
               child: lostObjectsProvider.isLoading
                   ? Container(
@@ -211,7 +271,7 @@ class __HomePageState extends State<HomePage> {
     String butonLabel = selectedDate != 'Date invalide' ? selectedDate : 'Date';
     return ElevatedButton.icon(
         onPressed: () {
-          _selectDate(context, lostObjectsProvider);
+          _showCustomDatePicker(context, lostObjectsProvider);
         },
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
@@ -250,7 +310,8 @@ class __HomePageState extends State<HomePage> {
         ),
         child: Row(
           children: [
-            const Text('Nature de l\'objet', style: TextStyle(color: Colors.white)),
+            const Text('Nature de l\'objet',
+                style: TextStyle(color: Colors.white)),
             if (numberOfNatures > 0) ...[
               const SizedBox(
                 width: 10,
@@ -403,44 +464,87 @@ class __HomePageState extends State<HomePage> {
             lostObjectsProvider.setSelectedSort('date', 'asc');
           },
         ),
-        ListTile(
-          title: const Text("Ordre alphabétique: de la nature de l'objet"),
-          onTap: () {
-            Navigator.pop(context);
-            lostObjectsProvider.setSelectedSort('gc_obo_nature_c', 'asc');
-          },
-        ),
+        // ListTile(
+        //   title: const Text("Ordre alphabétique: de la nature de l'objet"),
+        //   onTap: () {
+        //     Navigator.pop(context);
+        //     lostObjectsProvider.setSelectedSort('gc_obo_nature_c', 'asc');
+        //   },
+        // ),
       ],
     );
   }
 
-  Future<void> _selectDate(
-      BuildContext context, LostObjectsProvider lostObjectsProvider) async {
+  void _showCustomDatePicker(
+      BuildContext context, LostObjectsProvider lostObjectsProvider) {
     DateTime? dateFilter = lostObjectsProvider.dateFilter;
-    final DateTime? picked = await showDatePicker(
+    showDialog(
       context: context,
-      initialDate: dateFilter,
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now(),
-      locale: const Locale('fr'),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF6665DD),
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF6665DD),
-              ),
+      builder: (BuildContext context) {
+        return AlertDialog(
+          actionsPadding: EdgeInsets.zero,
+          titlePadding: const EdgeInsets.all(8),
+          contentPadding: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(0),
+          ),
+          title: const Text(
+            'Quand avez-vous perdu votre bien ?',
+            style: TextStyle(
+              fontSize: 18,
             ),
           ),
-          child: child!,
+          content: SizedBox(
+            width: 1000,
+            child: CalendarDatePicker(
+              initialDate: dateFilter,
+              firstDate: DateTime(2000),
+              lastDate: DateTime.now(),
+              onDateChanged: (picked) {
+                dateFilter = picked;
+              },
+            ),
+          ),
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    lostObjectsProvider.resetDate();
+                    Navigator.pop(context);
+                  },
+                  child: const Text(
+                    'Réinitialiser',
+                    style: TextStyle(color: Color(0xFF9B9ECE)),
+                  ),
+                ),
+                Row(
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Annuler',
+                          style: TextStyle(color: Color(0xFF6665DD))),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        if (dateFilter != null) {
+                          lostObjectsProvider.setSelectedDate(dateFilter!);
+                        }
+                        Navigator.pop(context);
+                      },
+                      child: const Text('OK',
+                          style: TextStyle(color: Color(0xFF6665DD))),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
         );
       },
     );
-    if (picked != null && picked != dateFilter) {
-      lostObjectsProvider.setSelectedDate(picked);
-    }
   }
 }
