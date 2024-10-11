@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/models/lost_object_model.dart';
 import 'package:myapp/utils/map_nature_img.dart';
+import 'package:myapp/utils/theme.dart';
 import 'package:myapp/utils/util_functions.dart';
 
 class ObjectCard extends StatelessWidget {
@@ -26,7 +27,7 @@ class ObjectCard extends StatelessWidget {
           children: [
             Container(
               height: 260,
-              color: const Color(0xFF9B9ECE),
+              color: AppTheme.coolGrayColor,
               child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -74,7 +75,7 @@ class ObjectCard extends StatelessWidget {
                   child: Text(
                     formatDate(lostObject.date, 'dd MMM yyyy'),
                     style:
-                        const TextStyle(fontSize: 10, color: Color(0xFF6665DD)),
+                        const TextStyle(fontSize: 10, color: AppTheme.stateBlueColor),
                   ),
                 )
               ],

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/providers/lost_objects_provider.dart';
+import 'package:myapp/utils/theme.dart';
 import 'package:myapp/utils/util_functions.dart';
-import 'package:myapp/views/home_page.dart';
+import 'package:myapp/views/pages/home_page.dart';
 import 'package:provider/provider.dart';
 
 class FilterPage extends StatefulWidget {
@@ -54,6 +55,18 @@ class _FilterPageState extends State<FilterPage> {
     });
   }
 
+  void resetFilter(LostObjectsProvider lostObjectsProvider) {
+    setState(() {
+      if (widget.filterType == 'Gare de départ') {
+        lostObjectsProvider.setSelectedStations([]);
+      } else if (widget.filterType == 'Nature de l\'objet') {
+        lostObjectsProvider.setSelectedNatures([]);
+      } else if (widget.filterType == 'Type d\'objet') {
+        lostObjectsProvider.setSelectedTypes([]);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final lostObjectsProvider =
@@ -64,9 +77,9 @@ class _FilterPageState extends State<FilterPage> {
             ? lostObjectsProvider.formerCount
             : lostObjectsProvider.newCount;
     return Scaffold(
-      backgroundColor: const Color(0xFF211E29),
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF211E29),
+        backgroundColor: AppTheme.backgroundColor,
         leading: IconButton(
           icon: const Icon(
             Icons.clear,
@@ -86,18 +99,18 @@ class _FilterPageState extends State<FilterPage> {
               setState(() {
                 selectedFilters.clear();
               });
-              lostObjectsProvider.setSelectedStations([]);
+              resetFilter(lostObjectsProvider);
             },
             child: const Text(
               'Réinitialiser',
-              style: TextStyle(color: Color(0xFF8EF1D9)),
+              style: TextStyle(color: AppTheme.teaGreenColor),
             ),
           ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(2.0),
           child: Container(
-            color: const Color(0xFF9B9ECE),
+            color: AppTheme.coolGrayColor,
             height: 2.0,
           ),
         ),
@@ -110,7 +123,7 @@ class _FilterPageState extends State<FilterPage> {
             ),
             decoration: InputDecoration(
               filled: true,
-              fillColor: const Color(0xFF9B9ECE),
+              fillColor: AppTheme.coolGrayColor,
               border: InputBorder.none,
               hintText: 'Saisir ${widget.filterType.toLowerCase()}',
               hintStyle: const TextStyle(color: Colors.white),
@@ -144,8 +157,8 @@ class _FilterPageState extends State<FilterPage> {
                           ? const Icon(Icons.check, color: Colors.white)
                           : null,
                       selected: selectedFilters
-                          .contains(filter), // Marque comme sélectionné ou non
-                      selectedTileColor: const Color(0xFFACADBC),
+                          .contains(filter),
+                      selectedTileColor: AppTheme.frenchGrayColor,
                       onTap: () => toggleFilter(filter, lostObjectsProvider),
                     ),
                     if (!selectedFilters.contains(filter))
@@ -154,7 +167,7 @@ class _FilterPageState extends State<FilterPage> {
                           child: SizedBox(
                             height: 1,
                             child: Divider(
-                              color: Color(0xFF9B9ECE),
+                              color: AppTheme.coolGrayColor,
                             ),
                           ))
                   ],
@@ -163,7 +176,7 @@ class _FilterPageState extends State<FilterPage> {
             ),
           ),
           const Divider(
-            color: Color(0xFF6665DD),
+            color: AppTheme.stateBlueColor,
           ),
           Row(
             children: [
@@ -182,8 +195,8 @@ class _FilterPageState extends State<FilterPage> {
                     },
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16.0),
-                      backgroundColor: const Color(0xFF6665DD),
-                      shadowColor: const Color(0xFF6665DD),
+                      backgroundColor: AppTheme.stateBlueColor,
+                      shadowColor: AppTheme.stateBlueColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(0),
                       ),
